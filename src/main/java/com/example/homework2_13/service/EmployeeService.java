@@ -12,43 +12,47 @@ import java.util.stream.Collectors;
 @Service
 public class EmployeeService {
     private static final int LIMIT = 10;
-    private final Map<String, Employee> employees = new HashMap<>();
+    private final List<Employee> employees = new ArrayList<>();
+    private final ValidatorService validatorService;
 
-    private String getKey(String name, String surname) {
-        return name + "|" + surname;
+    public EmployeeService(ValidatorService validatorService) {
+        this.validatorService = validatorService;
     }
 
     public Employee add(String name, String surname, double salary, int department) {
-        Employee employee = new Employee(name, surname, salary, department);
-        String key = getKey(name, surname);
-        if (employees.containsKey(key)) {
+        Employee employee = new Employee(
+                validatorService.validateName(name),
+                validatorService.validateSurame(surname),
+                salary,
+                department);
+        if (employees.contains(employee)) {
             throw new EmployeeAlreadyAddedException();
         }
         if (employees.size() < LIMIT) {
-            employees.put(key, employee);
+            employees.add(employee);
             return employee;
         }
         throw new EmployeeStorageFullException();
     }
 
     public Employee remove(String name, String surname) {
-        String key = getKey(name, surname);
-        if (!employees.containsKey(key)) {
-            throw new EmployeeNotFoundException();
-        }
-        return employees.remove(key);
+        Employee employee = employees.stream()
+                .filter(emp -> emp.getName.equals(name) && emp.getSurname.equals(surname))
+                .findFirst()
+                .orElseThrow(EmployeeNotFoundException::new);
+        employees.remove(employee);
+        return employee;
     }
 
     public Employee find(String name, String surname) {
-        String key = getKey(name, surname);
-        if (!employees.containsKey(key)) {
-            throw new EmployeeNotFoundException();
-        }
-        return employees.get(key);
+        return employees.stream()
+                .filter(emp -> emp.getName.equals(name) && emp.getSurname.equals(surname))
+                .findFirst()
+                .orElseThrow(EmployeeNotFoundException::new);
     }
 
     public List<Employee> getAll() {
-        return new ArrayList<>(employees.values());
+        return new ArrayList<>(employees);
     }
 
     public void printEmployeesByDepartment() {
